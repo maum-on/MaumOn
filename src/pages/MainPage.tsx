@@ -4,7 +4,6 @@ import { useState } from "react";
 import happy from "../assets/character1.png";
 import angry from "../assets/character2.png";
 import calm from "../assets/character3.png";
-import gray from "../assets/character_gray.png";
 
 export default function MainPage() {
   // ⭐ MainLayout에서 전달받은 바텀시트 열기 함수

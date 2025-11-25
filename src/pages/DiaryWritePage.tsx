@@ -9,7 +9,7 @@ export default function DiaryWritePage() {
   const [text, setText] = useState("");
   const [isWriting, setIsWriting] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
-  const [voiceFileUrl, setVoiceFileUrl] = useState<string | null>(null);
+  //const [voiceFileUrl, setVoiceFileUrl] = useState<string | null>(null);
 
   return (
     <div className="w-full min-h-screen bg-[#FDFFF9] pt-8 pb-20 px-6 max-w-md mx-auto">
@@ -17,8 +17,8 @@ export default function DiaryWritePage() {
       {showRecorder && (
         <VoiceRecorder
           onClose={() => setShowRecorder(false)}
-          onSave={(url) => {
-            setVoiceFileUrl(url);
+          onSave={() => {
+            //setVoiceFileUrl(url);
             setShowRecorder(false);
           }}
         />
