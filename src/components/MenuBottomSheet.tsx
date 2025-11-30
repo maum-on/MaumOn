@@ -1,5 +1,6 @@
 // src/components/MenuBottomSheet.tsx
 import { useNavigate } from "react-router-dom";
+import { authApi } from "../../apis/authApi";
 
 type Props = {
   isOpen: boolean;
@@ -8,6 +9,27 @@ type Props = {
 
 export default function MenuBottomSheet({ isOpen, onClose }: Props) {
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      onClose();
+
+      // ⭐ 로그아웃 API 요청
+      await authApi.logout();
+
+      // ⭐ 토큰 삭제
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("kakaoAccessToken");
+
+      alert("로그아웃 되었습니다.");
+
+      // ⭐ 완전한 페이지 이동
+      window.location.href = "/";
+    } catch (err) {
+      console.error(err);
+      alert("로그아웃 중 오류가 발생했습니다.");
+    }
+  };
 
   const items = [
     {
@@ -27,10 +49,7 @@ export default function MenuBottomSheet({ isOpen, onClose }: Props) {
     {
       label: "🚪 로그아웃",
       textClass: "text-red-500",
-      onClick: () => {
-        onClose();
-        alert("로그아웃 되었습니다.");
-      },
+      onClick: handleLogout, // ⭐ 변경 완료
     },
   ];
 

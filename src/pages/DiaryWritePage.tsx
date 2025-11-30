@@ -1,15 +1,94 @@
 // src/pages/DiaryWritePage.tsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import turtle from "../assets/turtle.png";
+import { useNavigate, useLocation } from "react-router-dom";
+import turtle from "../assets/turtle.svg";
 import VoiceRecorder from "../components/VoiceRecorder";
+import { diaryApi } from "../../apis/diaryApi";
 
 export default function DiaryWritePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const params = new URLSearchParams(location.search);
+  const date = params.get("date") || "";   // yyyy-MM-dd
+
+  // ⭐ WRITE API용: yyyy.MM.dd
+  const apiDateDot = date.replace(/-/g, ".");
+
+  // ⭐ STT API용: yyyy-MM-dd (원본 그대로)
+  const apiDateDash = date;
+
+  const formattedDate = date
+    ? `${Number(date.split("-")[1])}월 ${Number(date.split("-")[2])}일`
+    : "오늘의 일기";
+
   const [text, setText] = useState("");
   const [isWriting, setIsWriting] = useState(false);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [showRecorder, setShowRecorder] = useState(false);
-  //const [voiceFileUrl, setVoiceFileUrl] = useState<string | null>(null);
+  const [loadingStt, setLoadingStt] = useState(false);
+
+  const userId = Number(localStorage.getItem("userId"));
+
+  // ===================== 🔥 STT 변환 =====================
+  const handleSttConvert = async (file: File) => {
+    if (!userId) {
+      alert("로그인 정보가 없습니다.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("record_diary", file);
+
+    try {
+      setLoadingStt(true);
+
+      // ⭐ STT는 하이픈(-) 날짜
+      const res = await diaryApi.sttDiary(userId, apiDateDash, formData);
+
+      const transcript =
+        res.data?.data?.transcript ||
+        res.data?.data?.diary ||
+        "";
+
+      if (!transcript) {
+        alert("음성 변환 실패");
+        return;
+      }
+
+      setText(transcript);
+      setIsWriting(true);
+
+      alert("음성 변환 완료!");
+    } catch (err) {
+      console.error(err);
+      alert("음성 변환 중 오류 발생");
+    } finally {
+      setLoadingStt(false);
+    }
+  };
+
+  // ===================== ✏️ 일기 등록 =====================
+  const handleSubmit = async () => {
+    if (!userId) {
+      alert("로그인 정보가 없습니다.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("text", text);
+
+    try {
+      // ⭐ WRITE는 점(.) 날짜
+      await diaryApi.writeDiary(userId, apiDateDot, formData);
+
+      alert("일기 등록 완료!");
+      navigate(`/diary/detail/${date}`);
+    } catch (err) {
+      console.error(err);
+      alert("일기 등록 오류");
+    }
+  };
 
   return (
     <div className="w-full min-h-screen bg-[#FDFFF9] pt-8 pb-20 px-6 max-w-md mx-auto">
@@ -17,9 +96,10 @@ export default function DiaryWritePage() {
       {showRecorder && (
         <VoiceRecorder
           onClose={() => setShowRecorder(false)}
-          onSave={() => {
-            //setVoiceFileUrl(url);
+          onSave={(file: File) => {
+            setAudioFile(file);
             setShowRecorder(false);
+            handleSttConvert(file); // 🔥 file 바로 전달
           }}
         />
       )}
@@ -27,7 +107,7 @@ export default function DiaryWritePage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-5">
         <button onClick={() => navigate(-1)} className="text-xl">←</button>
-        <p className="text-[18px] font-semibold text-[#2F2F2F]">오늘의 일기</p>
+        <p className="text-[18px] font-semibold text-[#2F2F2F]">{formattedDate}</p>
         <button className="text-xl">☰</button>
       </div>
 
@@ -61,10 +141,13 @@ export default function DiaryWritePage() {
           className="w-[48%] bg-[#F3F3F3] py-3 rounded-xl text-gray-700 font-bold"
           onClick={() => setShowRecorder(true)}
         >
-          음성 일기
+          {loadingStt ? "변환 중..." : "음성 일기"}
         </button>
 
-        <button className="w-[48%] bg-[#F3F3F3] py-3 rounded-xl text-gray-700 font-bold">
+        <button
+          className="w-[48%] bg-[#9CD841] py-3 rounded-xl text-white font-bold"
+          onClick={handleSubmit}
+        >
           일기 등록
         </button>
       </div>

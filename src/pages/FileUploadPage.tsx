@@ -1,24 +1,34 @@
+// src/pages/FileUploadPage.tsx
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import turtle from "../assets/turtle.png";
-import file_icon from "../assets/file_icon.png";
-import kakao_icon from "../assets/kakao_icon.png";
-import insta_icon from "../assets/insta_icon.png";
+import { useNavigate, useLocation } from "react-router-dom";
+import turtle from "../assets/turtle.svg";
+import file_icon from "../assets/file_icon.svg";
+import kakao_icon from "../assets/kakao_icon.svg";
+import insta_icon from "../assets/insta_icon.svg";
 import KakaoGuide from "../components/KakaoGuide";
 import InstaGuide from "../components/InstaGuide";
+import { diaryApi } from "../../apis/diaryApi";
+import { api } from "../../apis/instance";  // 
+
 
 export default function FileUploadPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showOptions, setShowOptions] = useState(false);
   const [step, setStep] = useState(0);
-
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // 카카오톡 가이드
+  // 🔥 URL 에서 날짜 가져오기
+  const params = new URLSearchParams(location.search);
+  const date = params.get("date") || "";
+
+  // 🔥 로그인 정보
+  const userId = Number(localStorage.getItem("userId"));
+
+  // --- 가이드 화면 유지 ---
   if (step >= 1 && step < 100) return <KakaoGuide step={step} setStep={setStep} />;
-  // 인스타그램 가이드
   if (step >= 100) return <InstaGuide step={step} setStep={setStep} />;
 
   const handleChooseFile = () => {
@@ -29,6 +39,49 @@ export default function FileUploadPage() {
     const file = e.target.files?.[0] || null;
     setSelectedFile(file);
   };
+
+  // 🔥 파일 업로드 API
+  const handleUpload = async () => {
+  if (!selectedFile) return alert("파일을 선택해주세요!");
+
+  if (!userId) {
+    return alert("로그인이 필요합니다!");
+  }
+
+  const formData = new FormData();
+
+  // 파일 타입 자동 분리
+  if (selectedFile.type === "text/plain") {
+    formData.append("text_file", selectedFile);
+  } else if (selectedFile.type === "application/json") {
+    formData.append("json_file", selectedFile);
+  } else {
+    return alert("지원되지 않는 파일 형식입니다.");
+  }
+
+  // 필수 리스트
+  formData.append("file_summary", "요약 없음");
+
+  try {
+    const response = await api.post(
+      `/files/${userId}/${date.replace(/-/g, ".")}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      }
+    );
+
+    console.log("업로드 성공:", response.data);
+    alert("파일 등록 완료!");
+    navigate(`/diary/detail/${date}`, { state: { refresh: true } });
+
+  } catch (err: any) {
+    console.log("파일 업로드 오류:", err);
+    alert("파일 등록 실패!");
+  }
+};
 
   return (
     <div className="w-full min-h-screen bg-[#FDFFF9] pt-8 pb-20 px-6 max-w-md mx-auto">
@@ -49,7 +102,6 @@ export default function FileUploadPage() {
 
         <div className="bg-[#EEF9E9] rounded-3xl mt-14 px-6 pt-16 pb-10 min-h-[320px] text-center flex flex-col items-center justify-center">
 
-          {/* 파일이 없을 때만 표시 */}
           {!selectedFile && (
             <>
               <img src={file_icon} className="w-24 mx-auto mb-4 opacity-90" />
@@ -61,14 +113,12 @@ export default function FileUploadPage() {
             </>
           )}
 
-          {/* 파일 선택된 경우만 표시 */}
           {selectedFile && (
             <div className="mt-4 flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-200">
               <span className="text-gray-700 text-sm">
                 {selectedFile.name}
               </span>
 
-              {/* 부드러운 X 버튼 */}
               <button
                 onClick={() => setSelectedFile(null)}
                 className="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full hover:bg-gray-300 transition"
@@ -80,7 +130,6 @@ export default function FileUploadPage() {
         </div>
       </div>
 
-      {/* 숨겨진 파일 input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -88,7 +137,6 @@ export default function FileUploadPage() {
         onChange={onFileChange}
       />
 
-      {/* ===== "파일은 어떻게 받나요?" ===== */}
       <button
         onClick={() => setShowOptions(!showOptions)}
         className="w-full bg-white border border-gray-300 py-3 rounded-xl text-gray-700 font-medium shadow-sm mt-10"
@@ -96,11 +144,9 @@ export default function FileUploadPage() {
         파일은 어떻게 받나요?
       </button>
 
-      {/* SNS 옵션 */}
       {showOptions && (
         <div className="mt-8 grid grid-cols-2 gap-6 justify-items-center">
 
-          {/* 카카오톡 */}
           <button
             className="bg-[#9CD841] rounded-2xl py-6 w-28 flex flex-col items-center shadow-sm"
             onClick={() => setStep(1)}
@@ -109,7 +155,6 @@ export default function FileUploadPage() {
             <span className="text-white font-medium text-sm">카카오톡</span>
           </button>
 
-          {/* 인스타그램 */}
           <button
             className="bg-[#9CD841] rounded-2xl py-6 w-28 flex flex-col items-center shadow-sm"
             onClick={() => setStep(100)}
@@ -121,7 +166,6 @@ export default function FileUploadPage() {
         </div>
       )}
 
-      {/* ===== 파일 선택 버튼 ===== */}
       <button
         onClick={handleChooseFile}
         className="w-full bg-white border border-gray-300 py-3 rounded-xl text-gray-700 font-medium shadow-sm mt-10"
@@ -129,9 +173,9 @@ export default function FileUploadPage() {
         파일 선택
       </button>
 
-      {/* ===== 파일 등록 버튼 ===== */}
       <button
         disabled={!selectedFile}
+        onClick={handleUpload}
         className={`w-full py-3 rounded-xl font-medium shadow-sm mt-6 transition 
           ${selectedFile ? "bg-[#9CD841] text-white" : "bg-gray-200 text-gray-400"}`}
       >

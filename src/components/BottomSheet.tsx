@@ -1,16 +1,16 @@
 // src/components/BottomSheet.tsx
 import { useNavigate } from "react-router-dom";
-import write from "../assets/write.png";
-import file from "../assets/file.png";
-import draw from "../assets/draw.png";
+import write from "../assets/write.svg";
+import file from "../assets/file.svg";
+import draw from "../assets/draw.svg";
 
-// ✅ Props 타입 선언
 type BottomSheetProps = {
   isOpen: boolean;
   onClose: () => void;
+  selectedDate: string | null;
 };
 
-export default function BottomSheet({ isOpen, onClose }: BottomSheetProps) {
+export default function BottomSheet({ isOpen, onClose, selectedDate }: BottomSheetProps) {
   const navigate = useNavigate();
 
   const items = [
@@ -19,7 +19,7 @@ export default function BottomSheet({ isOpen, onClose }: BottomSheetProps) {
       text: "일기쓰기",
       onClick: () => {
         onClose();
-        navigate("/diary/write");
+        navigate(`/diary/write?date=${selectedDate}`);
       }
     },
     {
@@ -27,7 +27,7 @@ export default function BottomSheet({ isOpen, onClose }: BottomSheetProps) {
       text: "파일등록",
       onClick: () => {
         onClose();
-        navigate("/file-upload");
+        navigate(`/file-upload?date=${selectedDate}`);
       }
     },
     {
@@ -35,14 +35,13 @@ export default function BottomSheet({ isOpen, onClose }: BottomSheetProps) {
       text: "그림일기",
       onClick: () => {
         onClose();
-        navigate("/diary/draw");
+        navigate(`/diary/draw?date=${selectedDate}`);
       }
     }
   ];
 
   return (
     <>
-      {/* 🔹 달력을 클릭했을 때만 바텀시트 열림 */}
       {isOpen && (
         <div
           onClick={onClose}
@@ -50,7 +49,6 @@ export default function BottomSheet({ isOpen, onClose }: BottomSheetProps) {
         />
       )}
 
-      {/* 바텀시트 */}
       <div
         className={`fixed bottom-0 left-1/2 -translate-x-1/2
           w-full max-w-[480px] bg-white rounded-t-3xl shadow-xl
@@ -60,7 +58,7 @@ export default function BottomSheet({ isOpen, onClose }: BottomSheetProps) {
       >
         <div className="p-6">
           <p className="font-semibold text-gray-700 mb-4 text-lg">
-            오늘의 일기
+            {selectedDate} 일기 선택
           </p>
 
           <div className="flex flex-col space-y-4">
@@ -71,7 +69,7 @@ export default function BottomSheet({ isOpen, onClose }: BottomSheetProps) {
                 className="w-full flex justify-between items-center bg-[#F8F8ED] rounded-2xl p-4 shadow-sm"
               >
                 <span className="flex items-center gap-3">
-                  <img src={item.img} alt="" className="w-10 h-10" />
+                  <img src={item.img} className="w-10 h-10" />
                   <span className="text-gray-700">{item.text}</span>
                 </span>
                 <span className="text-[#4CAF50] text-xl">›</span>

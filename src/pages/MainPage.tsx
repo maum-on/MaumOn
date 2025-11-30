@@ -1,40 +1,76 @@
+// src/pages/MainPage.tsx
 import { useOutletContext } from "react-router-dom";
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
 import happy from "../assets/character1.png";
 import angry from "../assets/character2.png";
 import calm from "../assets/character3.png";
+import { homeApi } from "../../apis/homeApi";
 
 export default function MainPage() {
-  // ⭐ MainLayout에서 전달받은 바텀시트 열기 함수
-  const { setIsBottomSheetOpen } =
-    useOutletContext<{ setIsBottomSheetOpen: (v: boolean) => void }>();
+  const { setIsBottomSheetOpen, setSelectedDate } =
+    useOutletContext<{
+      setIsBottomSheetOpen: (v: boolean) => void;
+      setSelectedDate: (v: string) => void;
+    }>();
 
-  // ⭐ 현재 달
+  // 날짜 변환: yyyy-MM-dd → yyyy.MM.dd
+  const formatDotDate = (date: string) => date.replace(/-/g, ".");
+
+  // 날짜 변환: yyyy.MM.dd → yyyy-MM-dd (★ DiaryWritePage용)
+  const toDashDate = (dot: string) => dot.replace(/\./g, "-");
+
+  // ===================== API DATA =====================
+  const [temperature, setTemperature] = useState<number | null>(null);
+  const [writtenDates, setWrittenDates] = useState<string[]>([]);
+
+  const userId = localStorage.getItem("userId");
+
+  // 오늘 날짜 (백엔드 요구 형식 = yyyy.MM.dd)
+  const today = formatDotDate(new Date().toISOString().slice(0, 10));
+
+  useEffect(() => {
+    const fetchHome = async () => {
+      try {
+        if (!userId) return;
+
+        const res = await homeApi.getHomeData(userId, today);
+        const data = res.data.data;
+
+        setTemperature(data.temperature);
+
+        // 작성된 날짜 필터링 (yyyy.MM.dd)
+        const exists = Object.keys(data.diary_existence).filter(
+          (date) => data.diary_existence[date].write === true
+        );
+        setWrittenDates(exists);
+      } catch (err) {
+        console.error("홈 데이터 오류:", err);
+      }
+    };
+
+    fetchHome();
+  }, []);
+
+  // ===================== CALENDAR =====================
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // ⭐ 특정 날짜 강조하고 싶으면 yyyy-mm-dd 형식으로 기록
-  const highlightedDates = ["2025-09-08", "2025-09-10", "2025-09-15"];
-
-  // ⭐ 달력 날짜 생성 함수
   const calendarDays = (() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
 
-    const firstDay = new Date(year, month, 1).getDay(); // 이번달 시작 요일
-    const lastDate = new Date(year, month + 1, 0).getDate(); // 마지막 날짜
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
 
-    const days: ({ date: number; dateString: string } | null)[] = [];
+    const days = [] as ({ date: number; dateString: string } | null)[];
 
-    // (1) 시작 요일까지 null 채우기
     for (let i = 0; i < firstDay; i++) days.push(null);
 
-    // (2) 날짜 채우기
     for (let date = 1; date <= lastDate; date++) {
       const dateString = `${year}-${String(month + 1).padStart(
         2,
         "0"
       )}-${String(date).padStart(2, "0")}`;
+
       days.push({ date, dateString });
     }
 
@@ -45,28 +81,34 @@ export default function MainPage() {
     <div className="w-full min-h-screen bg-[#FDFFF9] pt-14 pb-10 overflow-auto">
       <div className="max-w-md mx-auto space-y-12 px-8">
 
-        {/* ===== 마음의 온도 ===== */}
+        {/* =================== 마음의 온도 =================== */}
         <section className="mt-3">
           <div className="flex justify-between items-center mb-3">
             <p className="text-[16px] text-gray-700">이번 달 마음의 온도</p>
-            <span className="text-[16px] font-semibold text-[#4CAF50]">30°C</span>
+            <span className="text-[16px] font-semibold text-[#4CAF50]">
+              {temperature !== null ? `${temperature}°C` : "로딩중"}
+            </span>
           </div>
 
           <div className="w-full h-2 bg-gray-200 rounded-full">
-            <div className="w-1/3 h-full bg-[#A8C686] rounded-full" />
+            <div
+              className="h-full bg-[#A8C686] rounded-full transition-all"
+              style={{
+                width: temperature !== null ? `${temperature}%` : "0%",
+              }}
+            />
           </div>
         </section>
 
-        {/* ===== 감정 캐릭터 박스 ===== */}
+        {/* =================== 감정 캐릭터 박스 =================== */}
         <section className="relative flex justify-center bg-[#E8F4E8] rounded-3xl py-20 shadow-md">
           <img src={happy} className="absolute top-8 left-8 w-20 opacity-90" />
           <img src={angry} className="w-40 z-10" />
           <img src={calm} className="absolute top-8 right-8 w-20 opacity-90" />
         </section>
 
-        {/* ===== 캘린더 ===== */}
+        {/* =================== 캘린더 =================== */}
         <section className="bg-white rounded-2xl shadow-md p-7">
-
           {/* 월 이동 */}
           <div className="flex justify-between items-center mb-5">
             <button
@@ -110,15 +152,24 @@ export default function MainPage() {
             {calendarDays.map((day, i) => (
               <div
                 key={i}
-                onClick={() => day && setIsBottomSheetOpen(true)}
+                onClick={() => {
+                  if (!day) return;
+
+                  // ★ DiaryWritePage로 넘어가는 날짜는 yyyy-MM-dd
+                  setSelectedDate(toDashDate(day.dateString));
+
+                  setIsBottomSheetOpen(true);
+                }}
                 className={`py-2 rounded-full cursor-pointer transition
                   ${day ? "hover:bg-[#C7DDB3]" : ""}
                   ${
-                    day && highlightedDates.includes(day.dateString)
+                    day &&
+                    writtenDates.includes(
+                      day.dateString.replace(/-/g, ".")
+                    )
                       ? "bg-[#A8C686] text-white"
                       : ""
-                  }
-                `}
+                  }`}
               >
                 {day?.date || ""}
               </div>
@@ -131,7 +182,7 @@ export default function MainPage() {
           </p>
         </section>
 
-        {/* ===== 오늘의 라디오 (수정 버전) ===== */}
+        {/* =================== 오늘의 라디오 =================== */}
         <section className="bg-white rounded-2xl shadow-md p-7 mb-10">
           <div className="flex justify-between items-center mb-4">
             <p className="text-gray-800 font-semibold text-[17px]">
@@ -143,14 +194,12 @@ export default function MainPage() {
           </div>
 
           <div className="border border-gray-200 rounded-2xl p-10 flex flex-col items-center justify-center text-gray-500">
-
-            {/* 라디오 아이콘 영역 */}
             <div className="w-20 h-20 mb-4 flex items-center justify-center rounded-full bg-[#F6F9F2] shadow-inner">
               <span className="text-3xl">📻</span>
             </div>
 
             <p className="text-gray-600 text-[14px] font-medium mb-3">
-              오늘의 추천 라디오 
+              오늘의 추천 라디오
             </p>
 
             <p className="text-gray-400 text-[12px] text-center">

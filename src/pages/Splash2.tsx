@@ -1,14 +1,10 @@
 // src/pages/Splash2.tsx
-import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.png";
-import kakaoBtn from "../assets/kakao_login_btn.png";
+import kakaoBtn from "../assets/kakao_login_btn.svg";
+import logo from "../assets/logo.svg";
 
 export default function Splash2() {
-  const navigate = useNavigate();
-
   const handleLogin = () => {
-    // ⭐ 임시: 로그인 생략하고 바로 홈화면으로 이동
-    navigate("/home");
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/kakao/login`;
   };
 
   return (

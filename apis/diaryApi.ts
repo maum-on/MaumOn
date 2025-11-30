@@ -2,16 +2,23 @@
 import { api } from "./instance";
 
 export const diaryApi = {
-  writeDiary: (userId: number, date: string, data: any) =>
-    api.post(`/write/${userId}/${date}`, data),
+  // ✏️ 일기 작성
+  writeDiary: (userId: number, date: string, formData: FormData) =>
+    api.post(`/write/${userId}/${date.replace(/-/g, ".")}`, formData),
 
-  uploadFile: (userId: number, date: string, file: FormData) =>
-    api.post(`/files/${userId}/${date}`, file, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  // 🎤 음성 → 텍스트 변환 (STT)
+  sttDiary: (userId: number, date: string, formData: FormData) =>
+    api.post(`/stt/${userId}/${date.replace(/-/g, ".")}`, formData),
 
-  uploadDrawing: (userId: number, date: string, file: FormData) =>
-    api.post(`/draw/${userId}/${date}`, file, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  // 📄 파일 등록
+  uploadFile: (userId: number, date: string, formData: FormData) =>
+    api.post(`/files/${userId}/${date.replace(/-/g, ".")}`, formData),
+
+  // 🎨 그림 일기 등록
+  uploadDrawing: (userId: number, date: string, formData: FormData) =>
+    api.post(`/draw/${userId}/${date.replace(/-/g, ".")}`, formData),
+
+  // 🎯 마이페이지 조회
+  mypage: (userId: number) => api.get(`/mypage/${userId}`),
+
 };

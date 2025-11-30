@@ -1,15 +1,17 @@
+// src/components/VoiceRecorder.tsx
 import { useEffect, useRef, useState } from "react";
 
 type VoiceRecorderProps = {
   onClose: () => void;
-  onSave: (fileUrl: string) => void;
+  onSave: (file: File) => void; // 저장 시 부모에게 File 전달
 };
 
 export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
   const [recording, setRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [time, setTime] = useState(0);
-  const [bars, setBars] = useState([4, 8, 12, 8, 4]); // 파형 높이 상태
+  const [bars, setBars] = useState([4, 8, 12, 8, 4]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -17,36 +19,51 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
   const waveRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // ------------------------------------
-  // 🔊 실시간 파형 애니메이션
-  // ------------------------------------
+  // 🔊 파형 애니메이션
   useEffect(() => {
     if (recording) {
       waveRef.current = window.setInterval(() => {
-        setBars(bars.map(() => Math.floor(Math.random() * 15) + 4)); 
+        setBars((prev) => prev.map(() => Math.floor(Math.random() * 15) + 4));
       }, 180);
     } else {
       if (waveRef.current) clearInterval(waveRef.current);
-      setBars([4, 8, 12, 8, 4]); // 기본 파형
+      setBars([4, 8, 12, 8, 4]);
     }
   }, [recording]);
 
-  // ------------------------------------
-  // 🎤 녹음 시작
-  // ------------------------------------
-  const startRecording = async () => {
-    setAudioUrl(null);
-    setTime(0);
-
-    // 이전 스트림이 있다면 종료
+  // 🎤 스트림/interval 완전 정리
+  const cleanupStream = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
     }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  // ⛔ 언마운트될 때 스트림 완전 종료
+  useEffect(() => {
+    return () => cleanupStream();
+  }, []);
+
+  // 🎤 녹음 시작
+  const startRecording = async () => {
+    cleanupStream(); // 🔥 기존 스트림 완전 정리(다시 녹음하기 눌렀을 때 중요!)
+
+    setAudioUrl(null);
+    setAudioFile(null);
+    setTime(0);
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     streamRef.current = stream;
 
-    const mediaRecorder = new MediaRecorder(stream);
+    // 🔥 webm(microphone default)로 녹음
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: "audio/webm",
+    });
+
     mediaRecorderRef.current = mediaRecorder;
     audioChunksRef.current = [];
 
@@ -55,9 +72,15 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
     };
 
     mediaRecorder.onstop = () => {
-      const blob = new Blob(audioChunksRef.current, { type: "audio/mp3" });
-      const url = URL.createObjectURL(blob);
-      setAudioUrl(url);
+      const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+
+      // 🔥 File 형태로 변환 (백엔드에서 파일 이름 필요)
+      const file = new File([blob], `record-${Date.now()}.webm`, {
+        type: "audio/webm",
+      });
+
+      setAudioFile(file);
+      setAudioUrl(URL.createObjectURL(file));
     };
 
     mediaRecorder.start();
@@ -68,13 +91,9 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
     }, 1000);
   };
 
-  // ------------------------------------
   // 🛑 녹음 종료
-  // ------------------------------------
   const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-    }
+    mediaRecorderRef.current?.stop();
     setRecording(false);
 
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -90,15 +109,20 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white w-80 rounded-3xl shadow-xl p-6 relative">
 
-        {/* ❌ X 버튼 */}
+        {/* X 버튼 */}
         <button
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
-          onClick={onClose}
+          onClick={() => {
+            cleanupStream();
+            onClose();
+          }}
         >
           ✕
         </button>
 
-        <h2 className="text-lg font-semibold text-gray-800 text-center">음성 일기 녹음</h2>
+        <h2 className="text-lg font-semibold text-gray-800 text-center">
+          음성 일기 녹음
+        </h2>
 
         {/* 파형 */}
         {recording && (
@@ -116,7 +140,7 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
           </>
         )}
 
-        {/* 버튼 */}
+        {/* 녹음 버튼 */}
         {!audioUrl && (
           <div className="flex justify-center mt-6">
             {recording ? (
@@ -137,7 +161,7 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
           </div>
         )}
 
-        {/* 🎧 재생 + 재녹음 + 저장 */}
+        {/* 저장 / 재녹음 */}
         {audioUrl && (
           <div className="flex flex-col items-center gap-3 mt-4">
             <audio controls src={audioUrl} className="w-full" />
@@ -150,7 +174,7 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
             </button>
 
             <button
-              onClick={() => audioUrl && onSave(audioUrl)}
+              onClick={() => audioFile && onSave(audioFile)}
               className="px-4 py-2 rounded-xl bg-green-500 text-gray-700 text-sm"
             >
               저장하기
