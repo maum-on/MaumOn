@@ -41,29 +41,21 @@ export default function FileUploadPage() {
   };
 
   // 🔥 파일 업로드 API
-  const handleUpload = async () => {
+// 🔥 파일 업로드 API (최종 수정본)
+const handleUpload = async () => {
   if (!selectedFile) return alert("파일을 선택해주세요!");
-
-  if (!userId) {
-    return alert("로그인이 필요합니다!");
-  }
+  if (!userId) return alert("로그인이 필요합니다!");
 
   const formData = new FormData();
 
-  // 파일 타입 자동 분리
-  if (selectedFile.type === "text/plain") {
-    formData.append("text_file", selectedFile);
-  } else if (selectedFile.type === "application/json") {
-    formData.append("json_file", selectedFile);
-  } else {
-    return alert("지원되지 않는 파일 형식입니다.");
-  }
+  // 🔥 백엔드 요구사항: 무조건 키는 “file”
+  formData.append("file", selectedFile);
 
-  // 필수 리스트
-  formData.append("file_summary", "요약 없음");
+  // ❌ 절대 넣으면 안 됨
+  // formData.append("file_summary", ... )
 
   try {
-    const response = await api.post(
+    await api.post(
       `/files/${userId}/${date.replace(/-/g, ".")}`,
       formData,
       {
@@ -73,15 +65,15 @@ export default function FileUploadPage() {
       }
     );
 
-    console.log("업로드 성공:", response.data);
     alert("파일 등록 완료!");
     navigate(`/diary/detail/${date}`, { state: { refresh: true } });
 
-  } catch (err: any) {
+  } catch (err) {
     console.log("파일 업로드 오류:", err);
     alert("파일 등록 실패!");
   }
 };
+
 
   return (
     <div className="w-full min-h-screen bg-[#FDFFF9] pt-8 pb-20 px-6 max-w-md mx-auto">
@@ -185,3 +177,5 @@ export default function FileUploadPage() {
     </div>
   );
 }
+
+

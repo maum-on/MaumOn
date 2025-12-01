@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 type VoiceRecorderProps = {
   onClose: () => void;
-  onSave: (file: File) => void; // 저장 시 부모에게 File 전달
+  onSave: (file: File) => void; // 녹음 완료 시 부모에게 File 전달
 };
 
 export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
@@ -31,7 +31,7 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
     }
   }, [recording]);
 
-  // 🎤 스트림/interval 완전 정리
+  // 🎤 스트림 정리 함수
   const cleanupStream = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -43,14 +43,13 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
     }
   };
 
-  // ⛔ 언마운트될 때 스트림 완전 종료
   useEffect(() => {
     return () => cleanupStream();
   }, []);
 
   // 🎤 녹음 시작
   const startRecording = async () => {
-    cleanupStream(); // 🔥 기존 스트림 완전 정리(다시 녹음하기 눌렀을 때 중요!)
+    cleanupStream();
 
     setAudioUrl(null);
     setAudioFile(null);
@@ -59,7 +58,7 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     streamRef.current = stream;
 
-    // 🔥 webm(microphone default)로 녹음
+    // webm으로 녹음
     const mediaRecorder = new MediaRecorder(stream, {
       mimeType: "audio/webm",
     });
@@ -74,7 +73,6 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
     mediaRecorder.onstop = () => {
       const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
 
-      // 🔥 File 형태로 변환 (백엔드에서 파일 이름 필요)
       const file = new File([blob], `record-${Date.now()}.webm`, {
         type: "audio/webm",
       });
@@ -91,7 +89,7 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
     }, 1000);
   };
 
-  // 🛑 녹음 종료
+  // 🎤 녹음 정지
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
     setRecording(false);
@@ -109,7 +107,7 @@ export default function VoiceRecorder({ onClose, onSave }: VoiceRecorderProps) {
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white w-80 rounded-3xl shadow-xl p-6 relative">
 
-        {/* X 버튼 */}
+        {/* 닫기 버튼 */}
         <button
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
           onClick={() => {

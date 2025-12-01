@@ -20,5 +20,4 @@ export const diaryApi = {
 
   // 🎯 마이페이지 조회
   mypage: (userId: number) => api.get(`/mypage/${userId}`),
-
 };

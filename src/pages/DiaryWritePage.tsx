@@ -10,12 +10,11 @@ export default function DiaryWritePage() {
   const location = useLocation();
 
   const params = new URLSearchParams(location.search);
-  const date = params.get("date") || "";   // yyyy-MM-dd
+  const date = params.get("date") || ""; // yyyy-MM-dd
 
-  // ⭐ WRITE API용: yyyy.MM.dd
+  // WRITE API용
   const apiDateDot = date.replace(/-/g, ".");
-
-  // ⭐ STT API용: yyyy-MM-dd (원본 그대로)
+  // STT API용
   const apiDateDash = date;
 
   const formattedDate = date
@@ -24,13 +23,18 @@ export default function DiaryWritePage() {
 
   const [text, setText] = useState("");
   const [isWriting, setIsWriting] = useState(false);
+
+  // 🔥 STT + 최종 일기 등록용 음성파일 저장
   const [audioFile, setAudioFile] = useState<File | null>(null);
+
   const [showRecorder, setShowRecorder] = useState(false);
   const [loadingStt, setLoadingStt] = useState(false);
 
   const userId = Number(localStorage.getItem("userId"));
 
-  // ===================== 🔥 STT 변환 =====================
+  // ===========================
+  // 🔥 STT 변환
+  // ===========================
   const handleSttConvert = async (file: File) => {
     if (!userId) {
       alert("로그인 정보가 없습니다.");
@@ -38,12 +42,11 @@ export default function DiaryWritePage() {
     }
 
     const formData = new FormData();
-    formData.append("record_diary", file);
+    formData.append("audio", file); // ⭐ 백엔드 요구사항
 
     try {
       setLoadingStt(true);
 
-      // ⭐ STT는 하이픈(-) 날짜
       const res = await diaryApi.sttDiary(userId, apiDateDash, formData);
 
       const transcript =
@@ -56,8 +59,12 @@ export default function DiaryWritePage() {
         return;
       }
 
+      // 🔥 텍스트 입력!
       setText(transcript);
       setIsWriting(true);
+
+      // 🔥 일기등록에서도 파일 보냄
+      setAudioFile(file);
 
       alert("음성 변환 완료!");
     } catch (err) {
@@ -68,7 +75,9 @@ export default function DiaryWritePage() {
     }
   };
 
-  // ===================== ✏️ 일기 등록 =====================
+  // ===========================
+  // ✏️ 일기 등록
+  // ===========================
   const handleSubmit = async () => {
     if (!userId) {
       alert("로그인 정보가 없습니다.");
@@ -78,8 +87,12 @@ export default function DiaryWritePage() {
     const formData = new FormData();
     formData.append("text", text);
 
+    // 🔥 음성파일도 함께 전송 (중요!!)
+    if (audioFile) {
+      formData.append("audio", audioFile);
+    }
+
     try {
-      // ⭐ WRITE는 점(.) 날짜
       await diaryApi.writeDiary(userId, apiDateDot, formData);
 
       alert("일기 등록 완료!");
@@ -97,9 +110,8 @@ export default function DiaryWritePage() {
         <VoiceRecorder
           onClose={() => setShowRecorder(false)}
           onSave={(file: File) => {
-            setAudioFile(file);
             setShowRecorder(false);
-            handleSttConvert(file); // 🔥 file 바로 전달
+            handleSttConvert(file);  // 🔥 STT 요청 + 파일 저장
           }}
         />
       )}
