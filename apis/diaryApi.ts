@@ -18,6 +18,10 @@ export const diaryApi = {
   uploadDrawing: (userId: number, date: string, formData: FormData) =>
     api.post(`/draw/${userId}/${date.replace(/-/g, ".")}`, formData),
 
+  // 🧠 일기 분석 조회 🔥🔥🔥
+  analyzeDiary: (userId: number, date: string) =>
+    api.get(`/diary/analyze/${userId}/${date.replace(/-/g, ".")}`),
+
   // 🎯 마이페이지 조회
   mypage: (userId: number) => api.get(`/mypage/${userId}`),
 };

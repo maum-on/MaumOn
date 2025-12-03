@@ -21,7 +21,7 @@ export default function MyPage() {
 
       console.log("마이페이지 결과:", res.data);
 
-      setMypageData(res.data.data); // 백엔드가 {data: {...}} 형태 리턴함
+      setMypageData(res.data.data); 
     } catch (err) {
       console.error(err);
       alert("마이페이지 정보를 불러오지 못했습니다.");
@@ -82,14 +82,14 @@ export default function MyPage() {
         <div className="bg-white rounded-2xl p-5 shadow-sm flex justify-between">
           <span className="text-gray-700">이번달 일기 수</span>
           <span className="font-semibold text-[#4CAF50]">
-            {mypageData.diaryCount ?? 0}개
+            {mypageData.diary_count ?? 0}개
           </span>
         </div>
 
         <div className="bg-white rounded-2xl p-5 shadow-sm flex justify-between">
           <span className="text-gray-700">이번달 마음 온도 평균</span>
           <span className="font-semibold text-[#4CAF50]">
-            {mypageData.moodAvg ?? "-"}°C
+            {mypageData.this_month_avg_temp ?? "-"}°C
           </span>
         </div>
       </section>

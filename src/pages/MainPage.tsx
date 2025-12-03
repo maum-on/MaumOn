@@ -1,5 +1,5 @@
 // src/pages/MainPage.tsx
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import happy from "../assets/character1.png";
 import angry from "../assets/character2.png";
@@ -7,57 +7,96 @@ import calm from "../assets/character3.png";
 import { homeApi } from "../../apis/homeApi";
 
 export default function MainPage() {
+  const navigate = useNavigate();
+
   const { setIsBottomSheetOpen, setSelectedDate } =
     useOutletContext<{
       setIsBottomSheetOpen: (v: boolean) => void;
       setSelectedDate: (v: string) => void;
     }>();
 
-  // 날짜 변환: yyyy-MM-dd → yyyy.MM.dd
   const formatDotDate = (date: string) => date.replace(/-/g, ".");
-
-  // 날짜 변환: yyyy.MM.dd → yyyy-MM-dd (★ DiaryWritePage용)
   const toDashDate = (dot: string) => dot.replace(/\./g, "-");
 
-  // ===================== API DATA =====================
   const [temperature, setTemperature] = useState<number | null>(null);
   const [writtenDates, setWrittenDates] = useState<string[]>([]);
+  const [emotionCount, setEmotionCount] = useState<Record<string, number>>({});
+
+  // ⭐ activity_recommend 추가
+  const [activityRecommend, setActivityRecommend] = useState("");
+
+  // 🎧 라디오 API state
+  const [boostMessage, setBoostMessage] = useState("");
+  const [boostEmotion, setBoostEmotion] = useState("");
+  const [audioPath, setAudioPath] = useState("");
 
   const userId = localStorage.getItem("userId");
-
-  // 오늘 날짜 (백엔드 요구 형식 = yyyy.MM.dd)
   const today = formatDotDate(new Date().toISOString().slice(0, 10));
 
+  // ================== API 호출 ==================
   useEffect(() => {
-    const fetchHome = async () => {
-      try {
-        if (!userId) return;
+    const fetchHomeData = async () => {
+      if (!userId) return;
 
+      try {
         const res = await homeApi.getHomeData(userId, today);
         const data = res.data.data;
 
         setTemperature(data.temperature);
 
-        // 작성된 날짜 필터링 (yyyy.MM.dd)
         const exists = Object.keys(data.diary_existence).filter(
           (date) => data.diary_existence[date].write === true
         );
         setWrittenDates(exists);
+
+        setEmotionCount(data.emotions || {});
+
+        // ⭐ 활동 추천 저장
+        setActivityRecommend(data.activity_recommend || "");
       } catch (err) {
         console.error("홈 데이터 오류:", err);
       }
     };
 
-    fetchHome();
-  }, []);
+    const fetchBoost = async () => {
+      if (!userId) return;
 
-  // ===================== CALENDAR =====================
+      try {
+        const res = await homeApi.getBoostMessage(userId, today);
+        console.log("BOOST API RESPONSE:", res.data);
+        const data = res.data.data;
+
+        setBoostMessage(data.message || "");
+        setBoostEmotion(data.diary_meta?.emotion || "");
+        setAudioPath(data.audio_path || "");
+      } catch (err) {
+        console.error("boost 오류:", err);
+      }
+    };
+
+    fetchHomeData();
+    fetchBoost();
+  }, [userId, today]);
+
+  // ================== 감정 top3 ==================
+  const sortedEmotions: [string, number][] = Object.entries(emotionCount)
+    .filter(([_, count]: [string, number]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const emotionImages: Record<string, string> = {
+    happy,
+    angry,
+    empty: calm,
+    sad: calm,
+    shy: calm,
+  };
+
+  // ================== 캘린더 ==================
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const calendarDays = (() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-
     const firstDay = new Date(year, month, 1).getDay();
     const lastDate = new Date(year, month + 1, 0).getDate();
 
@@ -102,14 +141,34 @@ export default function MainPage() {
 
         {/* =================== 감정 캐릭터 박스 =================== */}
         <section className="relative flex justify-center bg-[#E8F4E8] rounded-3xl py-20 shadow-md">
-          <img src={happy} className="absolute top-8 left-8 w-20 opacity-90" />
-          <img src={angry} className="w-40 z-10" />
-          <img src={calm} className="absolute top-8 right-8 w-20 opacity-90" />
+          {sortedEmotions.length > 0 ? (
+            <>
+              {sortedEmotions[1] && (
+                <img
+                  src={emotionImages[sortedEmotions[1][0]]}
+                  className="absolute top-8 left-8 w-20 opacity-90"
+                />
+              )}
+
+              <img
+                src={emotionImages[sortedEmotions[0][0]]}
+                className="w-40 z-10"
+              />
+
+              {sortedEmotions[2] && (
+                <img
+                  src={emotionImages[sortedEmotions[2][0]]}
+                  className="absolute top-8 right-8 w-20 opacity-90"
+                />
+              )}
+            </>
+          ) : (
+            <p className="text-gray-500">감정 데이터가 없습니다.</p>
+          )}
         </section>
 
         {/* =================== 캘린더 =================== */}
         <section className="bg-white rounded-2xl shadow-md p-7">
-          {/* 월 이동 */}
           <div className="flex justify-between items-center mb-5">
             <button
               onClick={() =>
@@ -155,18 +214,21 @@ export default function MainPage() {
                 onClick={() => {
                   if (!day) return;
 
-                  // ★ DiaryWritePage로 넘어가는 날짜는 yyyy-MM-dd
-                  setSelectedDate(toDashDate(day.dateString));
+                  const dotDate = day.dateString.replace(/-/g, ".");
+                  const dashDate = toDashDate(day.dateString);
 
-                  setIsBottomSheetOpen(true);
+                  if (writtenDates.includes(dotDate)) {
+                    navigate(`/diary/detail/${dashDate}`);
+                  } else {
+                    setSelectedDate(dashDate);
+                    setIsBottomSheetOpen(true);
+                  }
                 }}
                 className={`py-2 rounded-full cursor-pointer transition
                   ${day ? "hover:bg-[#C7DDB3]" : ""}
                   ${
                     day &&
-                    writtenDates.includes(
-                      day.dateString.replace(/-/g, ".")
-                    )
+                    writtenDates.includes(day.dateString.replace(/-/g, "."))
                       ? "bg-[#A8C686] text-white"
                       : ""
                   }`}
@@ -176,9 +238,10 @@ export default function MainPage() {
             ))}
           </div>
 
+          {/* ⭐ activity_recommend 표시 */}
           <p className="text-sm text-gray-500 mt-5 flex items-center">
             <span className="text-[#4CAF50] mr-2 text-xl">🌿</span>
-            기쁨이 높은 사용자를 스캐너로 감정 분석 중이에요.
+            {activityRecommend || "일기를 쓰며 하루를 정리해보아요!"}
           </p>
         </section>
 
@@ -188,9 +251,15 @@ export default function MainPage() {
             <p className="text-gray-800 font-semibold text-[17px]">
               오늘의 라디오
             </p>
-            <button className="text-[#4CAF50] text-sm font-medium">
-              듣기 &gt;
-            </button>
+            {audioPath && (
+              <a
+                href={audioPath}
+                target="_blank"
+                className="text-[#4CAF50] text-sm font-medium"
+              >
+                듣기 &gt;
+              </a>
+            )}
           </div>
 
           <div className="border border-gray-200 rounded-2xl p-10 flex flex-col items-center justify-center text-gray-500">
@@ -199,15 +268,14 @@ export default function MainPage() {
             </div>
 
             <p className="text-gray-600 text-[14px] font-medium mb-3">
-              오늘의 추천 라디오
+              {boostEmotion ? `오늘의 감정: ${boostEmotion}` : "로딩 중..."}
             </p>
 
             <p className="text-gray-400 text-[12px] text-center">
-              마음을 편안하게 해보세요 🌿
+              {boostMessage || "응원 메시지를 불러오는 중..."}
             </p>
           </div>
         </section>
-
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-// src/components/MenuBottomSheet.tsx
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../../apis/authApi";
 
@@ -10,24 +9,48 @@ type Props = {
 export default function MenuBottomSheet({ isOpen, onClose }: Props) {
   const navigate = useNavigate();
 
+  // 🔥 로그아웃
   const handleLogout = async () => {
     try {
       onClose();
-
-      // ⭐ 로그아웃 API 요청
       await authApi.logout();
 
-      // ⭐ 토큰 삭제
       localStorage.removeItem("accessToken");
       localStorage.removeItem("kakaoAccessToken");
+      localStorage.removeItem("userId");
 
       alert("로그아웃 되었습니다.");
-
-      // ⭐ 완전한 페이지 이동
       window.location.href = "/";
     } catch (err) {
       console.error(err);
       alert("로그아웃 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 🔥 회원 탈퇴
+  const handleWithdraw = async () => {
+    const confirmDelete = window.confirm(
+      "정말 탈퇴하시겠어요?\n작성한 일기와 정보가 모두 삭제됩니다."
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      onClose();
+
+      await authApi.withdraw(); // 회원탈퇴 API 호출
+
+      // 🔥 로컬스토리지 전체 정리
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("kakaoAccessToken");
+      localStorage.removeItem("userId");
+
+      alert("회원 탈퇴가 완료되었습니다.");
+
+      window.location.href = "/"; // 메인 이동
+    } catch (err) {
+      console.error(err);
+      alert("회원 탈퇴 중 오류가 발생했습니다.");
     }
   };
 
@@ -39,18 +62,19 @@ export default function MenuBottomSheet({ isOpen, onClose }: Props) {
         navigate("/mypage");
       },
     },
-    {
-      label: "⚙️ 설정",
-      onClick: () => {
-        onClose();
-        navigate("/settings");
-      },
-    },
+
     {
       label: "🚪 로그아웃",
       textClass: "text-red-500",
-      onClick: handleLogout, // ⭐ 변경 완료
+      onClick: handleLogout,
     },
+
+    {
+      label: "❌ 회원 탈퇴하기",
+      textClass: "text-red-500" ,
+      onClick: handleWithdraw,
+    },
+
   ];
 
   return (
@@ -83,12 +107,9 @@ export default function MenuBottomSheet({ isOpen, onClose }: Props) {
                 onClick={item.onClick}
                 className="w-full flex justify-between items-center bg-[#F8F8ED] rounded-2xl p-4 shadow-sm"
               >
-                <span className="text-gray-700">
-                  <span className={`${item.textClass || ""}`}>
-                    {item.label}
-                  </span>
+                <span className={`text-gray-700 ${item.textClass || ""}`}>
+                  {item.label}
                 </span>
-
                 <span className="text-[#4CAF50] text-xl">›</span>
               </button>
             ))}

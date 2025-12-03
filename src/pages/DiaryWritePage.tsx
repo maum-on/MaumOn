@@ -1,5 +1,5 @@
 // src/pages/DiaryWritePage.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import turtle from "../assets/turtle.svg";
 import VoiceRecorder from "../components/VoiceRecorder";
@@ -9,32 +9,48 @@ export default function DiaryWritePage() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // =========================
+  // 🔥 수정모드인지 확인
+  // =========================
   const params = new URLSearchParams(location.search);
-  const date = params.get("date") || ""; // yyyy-MM-dd
+  const date = params.get("date") || "";
+  const isEdit = params.get("edit") === "true";
+
+  const originalText = location.state?.originalText || "";
 
   // WRITE API용
   const apiDateDot = date.replace(/-/g, ".");
-  // STT API용
   const apiDateDash = date;
 
   const formattedDate = date
     ? `${Number(date.split("-")[1])}월 ${Number(date.split("-")[2])}일`
     : "오늘의 일기";
 
+  // =========================
+  // 🔥 상태값
+  // =========================
   const [text, setText] = useState("");
   const [isWriting, setIsWriting] = useState(false);
 
-  // 🔥 STT + 최종 일기 등록용 음성파일 저장
   const [audioFile, setAudioFile] = useState<File | null>(null);
-
   const [showRecorder, setShowRecorder] = useState(false);
   const [loadingStt, setLoadingStt] = useState(false);
 
   const userId = Number(localStorage.getItem("userId"));
 
-  // ===========================
+  // =========================
+  // 🔥 수정모드일 경우 기존 텍스트 채우기
+  // =========================
+  useEffect(() => {
+    if (isEdit && originalText) {
+      setText(originalText);
+      setIsWriting(true);
+    }
+  }, [isEdit, originalText]);
+
+  // =========================
   // 🔥 STT 변환
-  // ===========================
+  // =========================
   const handleSttConvert = async (file: File) => {
     if (!userId) {
       alert("로그인 정보가 없습니다.");
@@ -42,7 +58,7 @@ export default function DiaryWritePage() {
     }
 
     const formData = new FormData();
-    formData.append("audio", file); // ⭐ 백엔드 요구사항
+    formData.append("audio", file);
 
     try {
       setLoadingStt(true);
@@ -59,11 +75,8 @@ export default function DiaryWritePage() {
         return;
       }
 
-      // 🔥 텍스트 입력!
       setText(transcript);
       setIsWriting(true);
-
-      // 🔥 일기등록에서도 파일 보냄
       setAudioFile(file);
 
       alert("음성 변환 완료!");
@@ -75,9 +88,9 @@ export default function DiaryWritePage() {
     }
   };
 
-  // ===========================
-  // ✏️ 일기 등록
-  // ===========================
+  // =========================
+  // ✏️ 일기 등록 / 수정
+  // =========================
   const handleSubmit = async () => {
     if (!userId) {
       alert("로그인 정보가 없습니다.");
@@ -87,19 +100,20 @@ export default function DiaryWritePage() {
     const formData = new FormData();
     formData.append("text", text);
 
-    // 🔥 음성파일도 함께 전송 (중요!!)
     if (audioFile) {
       formData.append("audio", audioFile);
     }
 
     try {
+      // 🔥 수정하기/등록하기 모두 writeDiary로 전송 (백에서 덮어쓰기)
       await diaryApi.writeDiary(userId, apiDateDot, formData);
 
-      alert("일기 등록 완료!");
+      alert(isEdit ? "일기 수정 완료!" : "일기 등록 완료!");
+
       navigate(`/diary/detail/${date}`);
     } catch (err) {
       console.error(err);
-      alert("일기 등록 오류");
+      alert(isEdit ? "일기 수정 오류" : "일기 등록 오류");
     }
   };
 
@@ -111,7 +125,7 @@ export default function DiaryWritePage() {
           onClose={() => setShowRecorder(false)}
           onSave={(file: File) => {
             setShowRecorder(false);
-            handleSttConvert(file);  // 🔥 STT 요청 + 파일 저장
+            handleSttConvert(file);
           }}
         />
       )}
@@ -160,7 +174,7 @@ export default function DiaryWritePage() {
           className="w-[48%] bg-[#9CD841] py-3 rounded-xl text-white font-bold"
           onClick={handleSubmit}
         >
-          일기 등록
+          {isEdit ? "일기 수정" : "일기 등록"}
         </button>
       </div>
     </div>
