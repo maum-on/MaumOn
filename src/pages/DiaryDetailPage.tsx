@@ -1,12 +1,15 @@
-import { useParams, useNavigate } from "react-router-dom";
+// src/pages/DiaryDetailPage.tsx
+import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { diaryApi } from "../../apis/diaryApi";
+
 import happyImg from "../assets/turtle_happy.svg";
 import sadImg from "../assets/turtle_sad.svg";
-import angryImg from "../assets/turtle_angry.svg"; 
+import angryImg from "../assets/turtle_angry.svg";
 import emptyImg from "../assets/turtle_empty.svg";
 import shyImg from "../assets/turtle_shy.svg";
-import MenuBottomSheet from "../components/MenuBottomSheet"; 
+
+import MenuBottomSheet from "../components/MenuBottomSheet";
 
 export default function DiaryDetailPage() {
   const navigate = useNavigate();
@@ -22,10 +25,15 @@ export default function DiaryDetailPage() {
   const [aiReply, setAiReply] = useState("");
   const [aiDrawReply, setAiDrawReply] = useState("");
 
-  // ⭐ 메뉴 bottomsheet 상태
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // 🔥 감정 이미지 맵
+  // ⭐ MainLayout에서 제공하는 바텀시트 open 함수 가져오기
+  const { setIsBottomSheetOpen, setSelectedDate } = useOutletContext<{
+    setIsBottomSheetOpen: (v: boolean) => void;
+    setSelectedDate: (v: string) => void;
+  }>();
+
+  // 🔥 감정 이미지 mapping
   const emotionImages: Record<string, string> = {
     happy: happyImg,
     기쁨: happyImg,
@@ -44,7 +52,7 @@ export default function DiaryDetailPage() {
     없음: emptyImg,
   };
 
-  // 🔥 API 요청
+  // 🔥 데이터 불러오기
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -57,7 +65,7 @@ export default function DiaryDetailPage() {
         setFileSummation(data.file_summation || []);
         setAiReply(data.ai_reply || "");
         setAiDrawReply(data.ai_draw_reply || "");
-      } catch {
+      } catch (err) {
         alert("일기 정보를 불러오지 못했습니다.");
       } finally {
         setLoading(false);
@@ -74,26 +82,23 @@ export default function DiaryDetailPage() {
   const isDrawDiary = !!draw;
 
   return (
-    <div className="w-full min-h-screen bg-[#FDFFF9] px-6 pt-10 pb-24 max-w-md mx-auto">
+    <div className="w-full min-h-screen bg-[#FDFFF9] px-6 pt-10 pb-20 max-w-md mx-auto">
 
       {/* 🔙 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <button onClick={() => navigate(-1)} className="text-2xl">←</button>
         <p className="text-[18px] font-semibold">{date}</p>
-
-        <button onClick={() => setIsMenuOpen(true)} className="text-2xl">
-          ☰
-        </button>
+        <button onClick={() => setIsMenuOpen(true)} className="text-2xl">☰</button>
       </div>
 
-      {/* 🐢 오늘의 감정 */}
+      {/* 🐢 감정 */}
       <section className="flex flex-col items-center gap-3 mt-4">
         <img src={emotionImages[emotion] || emptyImg} className="w-32" />
         <p className="text-[16px] text-gray-700 font-medium">오늘의 감정</p>
         <p className="text-[18px] font-semibold text-[#4CAF50]">{emotion}</p>
       </section>
 
-      {/* ✏️ 내가 쓴 일기 */}
+      {/* ✏️ 텍스트 일기 */}
       {isTextDiary && (
         <section className="mt-8">
           <div className="flex justify-between items-center mb-2">
@@ -139,7 +144,6 @@ export default function DiaryDetailPage() {
       {isDrawDiary && (
         <section className="mt-8">
           <p className="text-[15px] text-gray-700 mb-2 font-semibold">내가 그린 그림</p>
-
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <img src={draw!} className="w-full rounded-xl" />
           </div>
@@ -150,36 +154,38 @@ export default function DiaryDetailPage() {
       {(isTextDiary || isFileDiary) && (
         <section className="mt-8">
           <p className="text-[15px] text-gray-700 mb-2 font-semibold">AI 답장</p>
-
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <p className="text-gray-600 text-[14px] leading-6">{aiReply}</p>
           </div>
         </section>
       )}
 
-      {/* 🎨 AI 그림 답장 */}
+      {/* 🎨 그림 AI 답장 */}
       {isDrawDiary && (
         <section className="mt-8">
           <p className="text-[15px] text-gray-700 mb-2 font-semibold">AI 답장</p>
-
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <p className="text-gray-600 text-[14px] leading-6">{aiDrawReply}</p>
           </div>
         </section>
       )}
 
-      {/* ⭐ 추가: 이 날짜에 일기 추가 버튼 */}
-      <div className="mt-10">
+      {/* ⭐ 새로운 일기 추가 버튼 */}
+      <div className="mt-10 flex justify-center">
         <button
-          onClick={() => navigate(`/diary/write?date=${date}&add=true`)}
-          className="w-full bg-[#C6DBA2] py-3 rounded-xl text-gray-800 font-semibold shadow"
+          onClick={() => {
+            setSelectedDate(date!);        // 현재 날짜 설정
+            setIsBottomSheetOpen(true);    // 바텀시트 열기
+          }}
+          className="px-6 py-3 bg-[#4CAF50] text-white rounded-xl font-semibold shadow"
         >
-          ✏️ 이 날짜에 일기 추가하기
+          일기 추가하기
         </button>
       </div>
 
-      {/* ⭐ Menu Bottom Sheet */}
+      {/* ⭐ 메뉴 BottomSheet */}
       <MenuBottomSheet isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+
     </div>
   );
 }
