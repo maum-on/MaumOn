@@ -1,11 +1,11 @@
 // src/components/InstaGuide.tsx
 
-import instaGuide1 from "../assets/insta_guide1.png";
-import instaGuide2 from "../assets/insta_guide2.png";
-import instaGuide3 from "../assets/insta_guide3.png";
-import instaGuide4 from "../assets/insta_guide4.png";
-import instaGuide5 from "../assets/insta_guide5.png";
-import instaGuide6 from "../assets/insta_guide6.png";
+import instaGuide1 from "../assets/insta_guide1.svg";
+import instaGuide2 from "../assets/insta_guide2.svg";
+import instaGuide3 from "../assets/insta_guide3.svg";
+import instaGuide4 from "../assets/insta_guide4.svg";
+import instaGuide5 from "../assets/insta_guide5.svg";
+import instaGuide6 from "../assets/insta_guide6.svg";
 
 type InstaGuideProps = {
   step: number;
@@ -20,7 +20,7 @@ type GuideStep = {
 };
 
 export default function InstaGuide({ step, setStep }: InstaGuideProps) {
-  // 🔥 100 → 1, 101 → 2, ..., 106 → 7
+  // 🔥 step 100 → 1, 101 → 2 ... 106 → 7
   const realStep = step - 99;
 
   const guides: (GuideStep | {})[] = [
@@ -71,7 +71,7 @@ export default function InstaGuide({ step, setStep }: InstaGuideProps) {
   const current = guides[realStep] as GuideStep;
 
   return (
-    <div className="w-full min-h-screen bg-[#FAFAF0] pt-8 pb-20 px-6 max-w-md mx-auto">
+    <div className="w-full min-h-screen bg-[#FDFFF9] pt-8 pb-20 px-6 max-w-md mx-auto">
       
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-5">
@@ -104,16 +104,32 @@ export default function InstaGuide({ step, setStep }: InstaGuideProps) {
           {current.description}
         </p>
 
-        {/* 버튼 */}
-        <button
-          onClick={() => {
-            if (realStep === 6) setStep(0); // 마지막 단계 → 파일 업로드 화면으로
-            else setStep(step + 1); // 100→101→102 ...
-          }}
-          className="mt-6 w-full bg-[#FDFFF9] text-gray-700 py-3 rounded-xl font-semibold text-sm"
-        >
-          {current.button}
-        </button>
+        {/* 버튼 그룹 */}
+        <div className="flex gap-4 mt-6">
+          
+          {/* 🔙 이전 단계 버튼 */}
+          <button
+            onClick={() => {
+              if (realStep === 1) setStep(0); // 첫 단계 → 파일 업로드 화면으로
+              else setStep(step - 1);         // 일반 단계 → 이전 단계로
+            }}
+            className="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold text-sm"
+          >
+            이전 단계
+          </button>
+
+          {/* 👉 다음 단계 / 완료 버튼 */}
+          <button
+            onClick={() => {
+              if (realStep === 6) setStep(0); // 마지막 단계
+              else setStep(step + 1);
+            }}
+            className="w-1/2 bg-[#FDFFF9] text-gray-700 py-3 rounded-xl font-semibold text-sm"
+          >
+            {current.button}
+          </button>
+        </div>
+
       </div>
     </div>
   );

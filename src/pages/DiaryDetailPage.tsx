@@ -1,12 +1,17 @@
-// src/pages/DiaryDetailPage.tsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { diaryApi } from "../../apis/diaryApi";
-import happy from "../assets/turtle.svg";
-import angry from "../assets/character2.png";
-import sad from "../assets/character3.png";
-import empty from "../assets/character_gray.png";
-import shy from "../assets/character1.png"; // <-- shy 이미지 넣어줘!
+
+import happyImg from "../assets/turtle_happy.svg";
+import sadImg from "../assets/turtle_sad.svg";
+import angryImg from "../assets/turtle_angry.svg"; 
+import emptyImg from "../assets/turtle_empty.svg";
+import shyImg from "../assets/turtle_shy.svg";
+
+// ⭐ 메뉴 bottom sheet import
+import MenuBottomSheet from "../components/MenuBottomSheet"; 
+// 🔥 현재 프로젝트 경로에 맞게 수정 필요할 수도 있음!
+
 
 export default function DiaryDetailPage() {
   const navigate = useNavigate();
@@ -22,16 +27,29 @@ export default function DiaryDetailPage() {
   const [aiReply, setAiReply] = useState("");
   const [aiDrawReply, setAiDrawReply] = useState("");
 
-  // 🔥 감정 이미지 매핑
+  // ⭐ 메뉴 bottomsheet 상태
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // 🔥 감정 이미지 맵
   const emotionImages: Record<string, string> = {
-    happy,
-    angry,
-    sad,
-    empty,
-    shy,
+    happy: happyImg,
+    기쁨: happyImg,
+
+    sad: sadImg,
+    슬픔: sadImg,
+
+    angry: angryImg,
+    화남: angryImg,
+
+    shy: shyImg,
+    부끄러움: shyImg,
+
+    empty: emptyImg,
+    normal: emptyImg,
+    없음: emptyImg,
   };
 
-  // 🔥 데이터 요청
+  // 🔥 API 요청
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -44,7 +62,7 @@ export default function DiaryDetailPage() {
         setFileSummation(data.file_summation || []);
         setAiReply(data.ai_reply || "");
         setAiDrawReply(data.ai_draw_reply || "");
-      } catch (err) {
+      } catch {
         alert("일기 정보를 불러오지 못했습니다.");
       } finally {
         setLoading(false);
@@ -56,44 +74,37 @@ export default function DiaryDetailPage() {
 
   if (loading) return <p className="text-center mt-16">로딩 중...</p>;
 
-  // -----------------------------------
-  // 🔥 조건 분류
-  // -----------------------------------
   const isTextDiary = writeDiary && fileSummation.length === 0 && !draw;
   const isFileDiary = fileSummation.length > 0;
   const isDrawDiary = !!draw;
 
   return (
     <div className="w-full min-h-screen bg-[#FDFFF9] px-6 pt-10 pb-16 max-w-md mx-auto">
-      
+
       {/* 🔙 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <button onClick={() => navigate(-1)} className="text-2xl">←</button>
         <p className="text-[18px] font-semibold">{date}</p>
-        <button className="text-2xl">☰</button>
+
+        {/* ⭐ 메뉴 버튼 → Bottom Sheet 열기 */}
+        <button onClick={() => setIsMenuOpen(true)} className="text-2xl">
+          ☰
+        </button>
       </div>
 
       {/* 🐢 오늘의 감정 */}
       <section className="flex flex-col items-center gap-3 mt-4">
-        <img
-          src={emotionImages[emotion] || empty}
-          className="w-32"
-        />
+        <img src={emotionImages[emotion] || emptyImg} className="w-32" />
         <p className="text-[16px] text-gray-700 font-medium">오늘의 감정</p>
-        <p className="text-[18px] font-semibold text-[#4CAF50]">
-          {emotion}
-        </p>
+        <p className="text-[18px] font-semibold text-[#4CAF50]">{emotion}</p>
       </section>
 
       {/* ✏️ 내가 쓴 일기 */}
       {isTextDiary && (
         <section className="mt-8">
           <div className="flex justify-between items-center mb-2">
-            <p className="text-[15px] text-gray-700 font-semibold">
-              내가 쓴 일기
-            </p>
+            <p className="text-[15px] text-gray-700 font-semibold">내가 쓴 일기</p>
 
-            {/* ✨ 수정 버튼 */}
             <button
               onClick={() =>
                 navigate(`/diary/write?date=${date}&edit=true`, {
@@ -107,9 +118,7 @@ export default function DiaryDetailPage() {
           </div>
 
           <div className="bg-[#E8F4E8] rounded-2xl p-5 shadow-sm">
-            <p className="text-gray-700 text-[14px] leading-6">
-              {writeDiary}
-            </p>
+            <p className="text-gray-700 text-[14px] leading-6">{writeDiary}</p>
           </div>
         </section>
       )}
@@ -138,7 +147,7 @@ export default function DiaryDetailPage() {
           <p className="text-[15px] text-gray-700 mb-2 font-semibold">내가 그린 그림</p>
 
           <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <img src={draw!} alt="그림 일기" className="w-full rounded-xl" />
+            <img src={draw!} className="w-full rounded-xl" />
           </div>
         </section>
       )}
@@ -164,6 +173,9 @@ export default function DiaryDetailPage() {
           </div>
         </section>
       )}
+
+      {/* ⭐ Menu Bottom Sheet */}
+      <MenuBottomSheet isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
     </div>
   );
 }

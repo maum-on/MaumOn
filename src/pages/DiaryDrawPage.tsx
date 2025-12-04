@@ -23,6 +23,8 @@ export default function DiaryDrawPage() {
   const undoStackRef = useRef<ImageData[]>([]);
   const redoStackRef = useRef<ImageData[]>([]);
 
+  const [isActive, setIsActive] = useState(false); // ⭐ 버튼 활성화 상태
+
   // ============================
   //   초기 캔버스 설정
   // ============================
@@ -30,11 +32,9 @@ export default function DiaryDrawPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // 화면 크기에 맞게 캔버스 내부 픽셀 설정
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
-    // willReadFrequently 적용 (경고 제거 + undo 안정화)
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
@@ -44,12 +44,11 @@ export default function DiaryDrawPage() {
 
     ctxRef.current = ctx;
 
-    // ===== 터치로 스크롤되는 것 방지 =====
+    // 모바일 스크롤 방지
     const preventScroll = (e: TouchEvent) => e.preventDefault();
     canvas.addEventListener("touchstart", preventScroll, { passive: false });
     canvas.addEventListener("touchmove", preventScroll, { passive: false });
 
-    // 전체 화면 스크롤 잠금
     const original = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -59,6 +58,21 @@ export default function DiaryDrawPage() {
       document.body.style.overflow = original;
     };
   }, []);
+
+  // ============================
+  //   캔버스 비어있는지 체크
+  // ============================
+  const checkCanvasActive = () => {
+    const canvas = canvasRef.current;
+    const ctx = ctxRef.current;
+    if (!canvas || !ctx) return;
+
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+    // 하나라도 0이 아닌 픽셀이 있으면 = 그림 있음
+    const hasDrawing = pixels.some((v) => v !== 0);
+    setIsActive(hasDrawing);
+  };
 
   // ============================
   //   좌표 계산
@@ -83,8 +97,9 @@ export default function DiaryDrawPage() {
     const ctx = ctxRef.current;
     if (!canvas || !ctx) return;
 
-    // undo 저장
-    undoStackRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    undoStackRef.current.push(
+      ctx.getImageData(0, 0, canvas.width, canvas.height)
+    );
     redoStackRef.current = [];
 
     const { x, y } = getPos(e);
@@ -101,11 +116,14 @@ export default function DiaryDrawPage() {
     const { x, y } = getPos(e);
     ctxRef.current?.lineTo(x, y);
     ctxRef.current?.stroke();
+
+    checkCanvasActive(); // ⭐ 실시간으로 버튼 활성화
   };
 
   const stopDraw = () => {
     setIsDrawing(false);
     ctxRef.current?.closePath();
+    checkCanvasActive(); // ⭐ 그리기 끝난 후 체크
   };
 
   // ============================
@@ -116,9 +134,13 @@ export default function DiaryDrawPage() {
     const ctx = ctxRef.current;
     if (!canvas || !ctx) return;
 
-    undoStackRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    undoStackRef.current.push(
+      ctx.getImageData(0, 0, canvas.width, canvas.height)
+    );
     redoStackRef.current = [];
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setIsActive(false); // 다 지우면 비활성화
   };
 
   const undo = () => {
@@ -127,9 +149,13 @@ export default function DiaryDrawPage() {
     if (!canvas || !ctx) return;
     if (undoStackRef.current.length === 0) return;
 
-    redoStackRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    redoStackRef.current.push(
+      ctx.getImageData(0, 0, canvas.width, canvas.height)
+    );
     const prev = undoStackRef.current.pop();
     if (prev) ctx.putImageData(prev, 0, 0);
+
+    checkCanvasActive();
   };
 
   const redo = () => {
@@ -138,9 +164,13 @@ export default function DiaryDrawPage() {
     if (!canvas || !ctx) return;
     if (redoStackRef.current.length === 0) return;
 
-    undoStackRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    undoStackRef.current.push(
+      ctx.getImageData(0, 0, canvas.width, canvas.height)
+    );
     const next = redoStackRef.current.pop();
     if (next) ctx.putImageData(next, 0, 0);
+
+    checkCanvasActive();
   };
 
   // ============================
@@ -156,7 +186,6 @@ export default function DiaryDrawPage() {
       if (!blob) return alert("이미지 변환 실패!");
 
       const formData = new FormData();
-      // 🔥 Swagger에서 요구하는 정확한 필드명
       formData.append("file", blob, "drawing.png");
 
       try {
@@ -209,10 +238,17 @@ export default function DiaryDrawPage() {
       {/* 등록 버튼 */}
       <button
         onClick={handleSubmit}
-        className="w-full bg-[#9CD841] py-3 rounded-xl text-white font-semibold text-[16px] mt-10 shadow"
+        className={`w-full py-3 rounded-xl text-[16px] font-semibold mt-10 shadow transition
+          ${
+            isActive
+              ? "bg-[#9CD841] text-gray-700 cursor-pointer hover:bg-[#8CC23A]"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed pointer-events-none"
+          }
+        `}
       >
         그림 등록
       </button>
+
     </div>
   );
 }

@@ -7,7 +7,6 @@ import kakao_icon from "../assets/kakao_icon.svg";
 import insta_icon from "../assets/insta_icon.svg";
 import KakaoGuide from "../components/KakaoGuide";
 import InstaGuide from "../components/InstaGuide";
-import { diaryApi } from "../../apis/diaryApi";
 import { api } from "../../apis/instance";  // 
 
 
@@ -139,21 +138,27 @@ const handleUpload = async () => {
       {showOptions && (
         <div className="mt-8 grid grid-cols-2 gap-6 justify-items-center">
 
-          <button
-            className="bg-[#9CD841] rounded-2xl py-6 w-28 flex flex-col items-center shadow-sm"
-            onClick={() => setStep(1)}
-          >
-            <img src={kakao_icon} className="w-12 h-12 mb-3 opacity-90" />
-            <span className="text-white font-medium text-sm">카카오톡</span>
-          </button>
+<button
+  onClick={() => setStep(1)}
+  className="bg-[#4E8E51] rounded-2xl py-6 w-28 flex flex-col items-center shadow-md"
+>
+  <img
+    src={kakao_icon}
+    className="w-12 h-12 mb-3 filter invert brightness-200"
+  />
+  <span className="text-black font-medium text-sm">카카오톡</span>
+</button>
 
-          <button
-            className="bg-[#9CD841] rounded-2xl py-6 w-28 flex flex-col items-center shadow-sm"
-            onClick={() => setStep(100)}
-          >
-            <img src={insta_icon} className="w-12 h-12 mb-3 opacity-90" />
-            <span className="text-white font-medium text-sm">인스타그램</span>
-          </button>
+<button
+  onClick={() => setStep(100)}
+  className="bg-[#4E8E51] rounded-2xl py-6 w-28 flex flex-col items-center shadow-md"
+>
+  <img
+    src={insta_icon}
+    className="w-12 h-12 mb-3 filter invert brightness-200"
+  />
+  <span className="text-black font-medium text-sm">인스타그램</span>
+</button>
 
         </div>
       )}
@@ -166,10 +171,13 @@ const handleUpload = async () => {
       </button>
 
       <button
-        disabled={!selectedFile}
         onClick={handleUpload}
-        className={`w-full py-3 rounded-xl font-medium shadow-sm mt-6 transition 
-          ${selectedFile ? "bg-[#9CD841] text-white" : "bg-gray-200 text-gray-400"}`}
+        className={`w-full py-3 rounded-xl font-semibold shadow-sm mt-6 transition
+          ${
+            selectedFile
+              ? "bg-[#9CD841] text-gray-700 cursor-pointer hover:bg-[#8CC23A]"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed pointer-events-none"
+          }`}
       >
         파일 등록
       </button>

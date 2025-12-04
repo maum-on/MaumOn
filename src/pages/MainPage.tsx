@@ -1,9 +1,10 @@
 // src/pages/MainPage.tsx
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import happy from "../assets/character1.png";
-import angry from "../assets/character2.png";
-import calm from "../assets/character3.png";
+import happyImg from "../assets/happy.svg";
+import angryImg from "../assets/angry.svg";
+import emptyImg from "../assets/empty.svg";
+import shyImg from "../assets/shy.svg";
 import { homeApi } from "../../apis/homeApi";
 
 export default function MainPage() {
@@ -84,11 +85,21 @@ export default function MainPage() {
     .sort((a, b) => b[1] - a[1]);
 
   const emotionImages: Record<string, string> = {
-    happy,
-    angry,
-    empty: calm,
-    sad: calm,
-    shy: calm,
+    happy: happyImg,
+    기쁨: happyImg,
+
+    sad: emptyImg,
+    슬픔: emptyImg,
+
+    angry: angryImg,
+    화남: angryImg,
+
+    shy: shyImg,
+    부끄러움: shyImg,
+
+    empty: emptyImg,
+    normal: emptyImg,
+    없음: emptyImg,
   };
 
   // ================== 캘린더 ==================
