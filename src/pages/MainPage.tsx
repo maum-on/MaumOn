@@ -23,10 +23,8 @@ export default function MainPage() {
   const [writtenDates, setWrittenDates] = useState<string[]>([]);
   const [emotionCount, setEmotionCount] = useState<Record<string, number>>({});
 
-  // ⭐ activity_recommend 추가
   const [activityRecommend, setActivityRecommend] = useState("");
 
-  // 🎧 라디오 API state
   const [boostMessage, setBoostMessage] = useState("");
   const [boostEmotion, setBoostEmotion] = useState("");
   const [audioPath, setAudioPath] = useState("");
@@ -45,14 +43,23 @@ export default function MainPage() {
 
         setTemperature(data.temperature);
 
-        const exists = Object.keys(data.diary_existence).filter(
-          (date) => data.diary_existence[date].write === true
-        );
-        setWrittenDates(exists);
+        // ⭐ FILE / DRAW / STT 도 표시되도록 수정한 부분
+        const exists = Object.keys(data.diary_existence).filter((date) => {
+          const d = data.diary_existence[date];
+
+          return (
+            d.write === true ||
+            d.file === true ||
+            d.draw === true ||
+            d.stt === true
+          );
+        });
+
+        // dot 포맷으로 통일
+        const dotDates = exists.map((date) => date.replace(/-/g, "."));
+        setWrittenDates(dotDates);
 
         setEmotionCount(data.emotions || {});
-
-        // ⭐ 활동 추천 저장
         setActivityRecommend(data.activity_recommend || "");
       } catch (err) {
         console.error("홈 데이터 오류:", err);
@@ -64,7 +71,6 @@ export default function MainPage() {
 
       try {
         const res = await homeApi.getBoostMessage(userId, today);
-        console.log("BOOST API RESPONSE:", res.data);
         const data = res.data.data;
 
         setBoostMessage(data.message || "");
@@ -81,7 +87,7 @@ export default function MainPage() {
 
   // ================== 감정 top3 ==================
   const sortedEmotions: [string, number][] = Object.entries(emotionCount)
-    .filter(([_, count]: [string, number]) => count > 0)
+    .filter(([_, count]) => count > 0)
     .sort((a, b) => b[1] - a[1]);
 
   const emotionImages: Record<string, string> = {
@@ -184,8 +190,7 @@ export default function MainPage() {
             <button
               onClick={() =>
                 setCurrentMonth(
-                  (prev) =>
-                    new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+                  (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
                 )
               }
               className="text-xl text-gray-500"
@@ -201,8 +206,7 @@ export default function MainPage() {
             <button
               onClick={() =>
                 setCurrentMonth(
-                  (prev) =>
-                    new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+                  (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
                 )
               }
               className="text-xl text-gray-500"
@@ -211,13 +215,11 @@ export default function MainPage() {
             </button>
           </div>
 
-          {/* 요일 */}
           <div className="grid grid-cols-7 text-center text-gray-600 text-[13px] mb-4">
             <span>SUN</span><span>MON</span><span>TUE</span><span>WED</span>
             <span>THU</span><span>FRI</span><span>SAT</span>
           </div>
 
-          {/* 날짜 */}
           <div className="grid grid-cols-7 gap-3 text-center text-gray-700 text-[14px]">
             {calendarDays.map((day, i) => (
               <div
@@ -249,7 +251,6 @@ export default function MainPage() {
             ))}
           </div>
 
-          {/* ⭐ activity_recommend 표시 */}
           <p className="text-sm text-gray-500 mt-5 flex items-center">
             <span className="text-[#4CAF50] mr-2 text-xl">🌿</span>
             {activityRecommend || "일기를 쓰며 하루를 정리해보아요!"}
