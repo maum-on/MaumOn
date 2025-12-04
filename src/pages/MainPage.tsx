@@ -295,7 +295,7 @@ export default function MainPage() {
           🎧 라디오 모달
       ============================ */}
       {showRadio && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-80 shadow-lg flex flex-col items-center relative">
 
             {/* 닫기 버튼 */}
