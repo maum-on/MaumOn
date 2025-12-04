@@ -29,6 +29,9 @@ export default function MainPage() {
   const [boostEmotion, setBoostEmotion] = useState("");
   const [audioPath, setAudioPath] = useState("");
 
+  // 🎧 라디오 모달 on/off
+  const [showRadio, setShowRadio] = useState(false);
+
   const userId = localStorage.getItem("userId");
   const today = formatDotDate(new Date().toISOString().slice(0, 10));
 
@@ -43,10 +46,9 @@ export default function MainPage() {
 
         setTemperature(data.temperature);
 
-        // ⭐ FILE / DRAW / STT 도 표시되도록 수정한 부분
+        // FILE / DRAW / STT 도 포함해서 표시 ⭐ 여기 수정됨
         const exists = Object.keys(data.diary_existence).filter((date) => {
           const d = data.diary_existence[date];
-
           return (
             d.write === true ||
             d.file === true ||
@@ -55,7 +57,6 @@ export default function MainPage() {
           );
         });
 
-        // dot 포맷으로 통일
         const dotDates = exists.map((date) => date.replace(/-/g, "."));
         setWrittenDates(dotDates);
 
@@ -263,14 +264,14 @@ export default function MainPage() {
             <p className="text-gray-800 font-semibold text-[17px]">
               오늘의 라디오
             </p>
+
             {audioPath && (
-              <a
-                href={audioPath}
-                target="_blank"
+              <button
+                onClick={() => setShowRadio(true)}
                 className="text-[#4CAF50] text-sm font-medium"
               >
                 듣기 &gt;
-              </a>
+              </button>
             )}
           </div>
 
@@ -289,6 +290,33 @@ export default function MainPage() {
           </div>
         </section>
       </div>
+
+      {/* ============================
+          🎧 라디오 모달
+      ============================ */}
+      {showRadio && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-80 shadow-lg flex flex-col items-center relative">
+
+            {/* 닫기 버튼 */}
+            <button
+              onClick={() => setShowRadio(false)}
+              className="absolute top-3 right-3 text-gray-500 text-xl"
+            >
+              ✕
+            </button>
+
+            <p className="text-lg font-semibold text-gray-800 mb-4">
+              오늘의 라디오
+            </p>
+
+            <audio controls src={audioPath} className="w-full rounded-xl">
+              브라우저가 오디오 태그를 지원하지 않습니다.
+            </audio>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
