@@ -1,17 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { diaryApi } from "../../apis/diaryApi";
-
 import happyImg from "../assets/turtle_happy.svg";
 import sadImg from "../assets/turtle_sad.svg";
 import angryImg from "../assets/turtle_angry.svg"; 
 import emptyImg from "../assets/turtle_empty.svg";
 import shyImg from "../assets/turtle_shy.svg";
-
-// ⭐ 메뉴 bottom sheet import
 import MenuBottomSheet from "../components/MenuBottomSheet"; 
-// 🔥 현재 프로젝트 경로에 맞게 수정 필요할 수도 있음!
-
 
 export default function DiaryDetailPage() {
   const navigate = useNavigate();
@@ -79,14 +74,13 @@ export default function DiaryDetailPage() {
   const isDrawDiary = !!draw;
 
   return (
-    <div className="w-full min-h-screen bg-[#FDFFF9] px-6 pt-10 pb-16 max-w-md mx-auto">
+    <div className="w-full min-h-screen bg-[#FDFFF9] px-6 pt-10 pb-24 max-w-md mx-auto">
 
       {/* 🔙 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <button onClick={() => navigate(-1)} className="text-2xl">←</button>
         <p className="text-[18px] font-semibold">{date}</p>
 
-        {/* ⭐ 메뉴 버튼 → Bottom Sheet 열기 */}
         <button onClick={() => setIsMenuOpen(true)} className="text-2xl">
           ☰
         </button>
@@ -173,6 +167,16 @@ export default function DiaryDetailPage() {
           </div>
         </section>
       )}
+
+      {/* ⭐ 추가: 이 날짜에 일기 추가 버튼 */}
+      <div className="mt-10">
+        <button
+          onClick={() => navigate(`/diary/write?date=${date}&add=true`)}
+          className="w-full bg-[#C6DBA2] py-3 rounded-xl text-gray-800 font-semibold shadow"
+        >
+          ✏️ 이 날짜에 일기 추가하기
+        </button>
+      </div>
 
       {/* ⭐ Menu Bottom Sheet */}
       <MenuBottomSheet isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
